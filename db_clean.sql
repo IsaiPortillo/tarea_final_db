@@ -3,15 +3,44 @@
 -- Base de Datos PostgreSQL
 -- =====================================================
 
--- Crear la base de datos
+-- =====================================================
+-- CREACIÓN DE BASE DE DATOS (opcional)
+-- =====================================================
 -- CREATE DATABASE clinica_privada;
 -- \c clinica_privada;
+
+-- =====================================================
+-- USUARIOS Y ROLES DEL SISTEMA
+-- =====================================================
+
+CREATE TABLE usuarios (
+    id_usuario SERIAL PRIMARY KEY,
+    nombre_completo VARCHAR(150) NOT NULL,
+    usuario_login VARCHAR(50) NOT NULL UNIQUE,
+    contraseña_hash TEXT NOT NULL,
+    email VARCHAR(100),
+    telefono VARCHAR(15),
+    estado_activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE roles (
+    id_rol SERIAL PRIMARY KEY,
+    nombre_rol VARCHAR(50) NOT NULL UNIQUE,
+    descripcion TEXT
+);
+
+CREATE TABLE usuario_rol (
+    id_usuario INTEGER NOT NULL REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+    id_rol INTEGER NOT NULL REFERENCES roles(id_rol) ON DELETE CASCADE,
+    fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id_usuario, id_rol)
+);
 
 -- =====================================================
 -- CATÁLOGOS Y TABLAS MAESTRAS
 -- =====================================================
 
--- Catálogo de alergias
 CREATE TABLE alergias_catalogo (
     id_alergia SERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL UNIQUE,
@@ -20,7 +49,6 @@ CREATE TABLE alergias_catalogo (
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Seguros médicos
 CREATE TABLE seguros_medicos (
     id_seguro SERIAL PRIMARY KEY,
     nombre_seguro VARCHAR(100) NOT NULL,
@@ -31,17 +59,15 @@ CREATE TABLE seguros_medicos (
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Especialidades médicas
 CREATE TABLE especialidades (
     id_especialidad SERIAL PRIMARY KEY,
     nombre_especialidad VARCHAR(100) NOT NULL UNIQUE,
     descripcion TEXT,
-    codigo_mh VARCHAR(20), -- Código para facturación MH
+    codigo_mh VARCHAR(20),
     estado_activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Laboratorios farmacéuticos
 CREATE TABLE laboratorios (
     id_laboratorio SERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL UNIQUE,
@@ -50,25 +76,22 @@ CREATE TABLE laboratorios (
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Presentaciones de medicamentos
 CREATE TABLE presentaciones (
     id_presentacion SERIAL PRIMARY KEY,
-    tipo VARCHAR(50) NOT NULL UNIQUE, -- tableta, capsula, jarabe, etc.
+    tipo VARCHAR(50) NOT NULL UNIQUE,
     descripcion TEXT,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Concentraciones de medicamentos
 CREATE TABLE concentraciones (
     id_concentracion SERIAL PRIMARY KEY,
-    descripcion VARCHAR(50) NOT NULL UNIQUE, -- 500mg, 250mg/5ml, etc.
+    descripcion VARCHAR(50) NOT NULL UNIQUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tipos de movimiento de inventario
 CREATE TABLE tipo_movimiento (
     id_tipo SERIAL PRIMARY KEY,
-    tipo_nombre VARCHAR(30) NOT NULL UNIQUE, -- entrada, salida, ajuste, vencimiento
+    tipo_nombre VARCHAR(30) NOT NULL UNIQUE,
     descripcion TEXT,
     afecta_stock BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -78,7 +101,6 @@ CREATE TABLE tipo_movimiento (
 -- GESTIÓN DE PACIENTES
 -- =====================================================
 
--- Pacientes
 CREATE TABLE pacientes (
     id_paciente SERIAL PRIMARY KEY,
     nombres VARCHAR(100) NOT NULL,
@@ -101,7 +123,6 @@ CREATE TABLE pacientes (
     usuario_registro VARCHAR(50)
 );
 
--- Alergias de pacientes
 CREATE TABLE alergias_paciente (
     id_alergia_paciente SERIAL PRIMARY KEY,
     paciente_id INTEGER NOT NULL REFERENCES pacientes(id_paciente) ON DELETE CASCADE,
@@ -116,22 +137,22 @@ CREATE TABLE alergias_paciente (
 -- GESTIÓN DE PERSONAL MÉDICO
 -- =====================================================
 
--- Personal médico
 CREATE TABLE personal_medico (
     id_personal SERIAL PRIMARY KEY,
+    id_usuario INTEGER UNIQUE REFERENCES usuarios(id_usuario),
     nombres VARCHAR(100) NOT NULL,
     apellidos VARCHAR(100) NOT NULL,
     dui VARCHAR(10) UNIQUE NOT NULL,
     nit VARCHAR(17),
-    nup VARCHAR(20), -- Número Único Previsional
+    nup VARCHAR(20),
     especialidad_id INTEGER REFERENCES especialidades(id_especialidad),
-    numero_jvpm VARCHAR(20) UNIQUE, -- Junta de Vigilancia de la Profesión Médica
+    numero_jvpm VARCHAR(20) UNIQUE,
     telefono VARCHAR(15),
     email VARCHAR(100),
     direccion TEXT,
     fecha_contratacion DATE NOT NULL,
     estado_activo BOOLEAN DEFAULT TRUE,
-    horario_atencion JSONB, -- Almacenar horarios flexibles
+    horario_atencion JSONB,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -139,7 +160,6 @@ CREATE TABLE personal_medico (
 -- GESTIÓN DE MEDICAMENTOS E INVENTARIO
 -- =====================================================
 
--- Medicamentos
 CREATE TABLE medicamentos (
     id_medicamento SERIAL PRIMARY KEY,
     nombre_comercial VARCHAR(150) NOT NULL,
@@ -158,7 +178,6 @@ CREATE TABLE medicamentos (
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Movimientos de inventario
 CREATE TABLE movimientos_inventario (
     id_movimiento SERIAL PRIMARY KEY,
     medicamento_id INTEGER NOT NULL REFERENCES medicamentos(id_medicamento),
@@ -175,7 +194,6 @@ CREATE TABLE movimientos_inventario (
 -- GESTIÓN DE CITAS Y CONSULTAS
 -- =====================================================
 
--- Citas
 CREATE TABLE citas (
     id_cita SERIAL PRIMARY KEY,
     paciente_id INTEGER NOT NULL REFERENCES pacientes(id_paciente),
@@ -190,7 +208,6 @@ CREATE TABLE citas (
     usuario_creacion VARCHAR(50)
 );
 
--- Consultas médicas
 CREATE TABLE consultas_medicas (
     id_consulta SERIAL PRIMARY KEY,
     cita_id INTEGER NOT NULL REFERENCES citas(id_cita),
@@ -207,7 +224,6 @@ CREATE TABLE consultas_medicas (
     observaciones_generales TEXT
 );
 
--- Diagnósticos secundarios
 CREATE TABLE diagnosticos_secundarios (
     id_diagnostico SERIAL PRIMARY KEY,
     consulta_id INTEGER NOT NULL REFERENCES consultas_medicas(id_consulta) ON DELETE CASCADE,
@@ -215,12 +231,11 @@ CREATE TABLE diagnosticos_secundarios (
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Exámenes solicitados
 CREATE TABLE examenes_solicitados (
     id_examen SERIAL PRIMARY KEY,
     consulta_id INTEGER NOT NULL REFERENCES consultas_medicas(id_consulta) ON DELETE CASCADE,
     nombre_examen VARCHAR(200) NOT NULL,
-    tipo_examen VARCHAR(50), -- laboratorio, imagen, especializado
+    tipo_examen VARCHAR(50),
     observaciones TEXT,
     urgente BOOLEAN DEFAULT FALSE,
     fecha_solicitud TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -228,12 +243,11 @@ CREATE TABLE examenes_solicitados (
     resultado TEXT
 );
 
--- Medicamentos recetados
 CREATE TABLE medicamento_recetado (
     id_receta SERIAL PRIMARY KEY,
     consulta_id INTEGER NOT NULL REFERENCES consultas_medicas(id_consulta) ON DELETE CASCADE,
     id_medicamento INTEGER REFERENCES medicamentos(id_medicamento),
-    nombre_medicamento VARCHAR(200), -- Por si no está en inventario
+    nombre_medicamento VARCHAR(200),
     dosis VARCHAR(100) NOT NULL,
     frecuencia VARCHAR(100) NOT NULL,
     duracion_tratamiento VARCHAR(100),
@@ -245,20 +259,18 @@ CREATE TABLE medicamento_recetado (
 -- SERVICIOS MÉDICOS Y FACTURACIÓN
 -- =====================================================
 
--- Servicios médicos
 CREATE TABLE servicios_medicos (
     id_servicio SERIAL PRIMARY KEY,
     nombre_servicio VARCHAR(200) NOT NULL,
     descripcion TEXT,
     precio DECIMAL(10,2) NOT NULL,
-    codigo_tributario VARCHAR(20), -- Para facturación MH
+    codigo_tributario VARCHAR(20),
     categoria_servicio VARCHAR(50),
     especialidad_id INTEGER REFERENCES especialidades(id_especialidad),
     estado_activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Facturas
 CREATE TABLE facturas (
     id_factura SERIAL PRIMARY KEY,
     numero_factura VARCHAR(50) NOT NULL UNIQUE,
@@ -279,7 +291,6 @@ CREATE TABLE facturas (
     usuario_emisor VARCHAR(50)
 );
 
--- Detalle de facturas
 CREATE TABLE detalle_facturas (
     id_detalle SERIAL PRIMARY KEY,
     factura_id INTEGER NOT NULL REFERENCES facturas(id_factura) ON DELETE CASCADE,
@@ -295,7 +306,6 @@ CREATE TABLE detalle_facturas (
 -- AUDITORÍA Y BITÁCORA
 -- =====================================================
 
--- Bitácora de actividades
 CREATE TABLE bitacora_actividad (
     id_bitacora SERIAL PRIMARY KEY,
     usuario_bd VARCHAR(50) NOT NULL,
@@ -314,24 +324,20 @@ CREATE TABLE bitacora_actividad (
 -- ÍNDICES PARA OPTIMIZACIÓN
 -- =====================================================
 
--- Índices para pacientes
 CREATE INDEX idx_pacientes_dui ON pacientes(dui);
 CREATE INDEX idx_pacientes_nombres ON pacientes(nombres, apellidos);
 CREATE INDEX idx_pacientes_fecha_nacimiento ON pacientes(fecha_nacimiento);
 
--- Índices para citas
 CREATE INDEX idx_citas_fecha_hora ON citas(fecha_hora);
 CREATE INDEX idx_citas_paciente ON citas(paciente_id);
 CREATE INDEX idx_citas_medico ON citas(medico_id);
 CREATE INDEX idx_citas_estado ON citas(estado_cita);
 
--- Índices para facturación
 CREATE INDEX idx_facturas_fecha ON facturas(fecha_emision);
 CREATE INDEX idx_facturas_paciente ON facturas(paciente_id);
 CREATE INDEX idx_facturas_numero ON facturas(numero_factura);
 CREATE INDEX idx_facturas_estado_mh ON facturas(estado_mh);
 
--- Índices para inventario
 CREATE INDEX idx_medicamentos_nombre ON medicamentos(nombre_comercial, nombre_generico);
 CREATE INDEX idx_medicamentos_vencimiento ON medicamentos(fecha_vencimiento);
 CREATE INDEX idx_movimientos_fecha ON movimientos_inventario(fecha_movimiento);
