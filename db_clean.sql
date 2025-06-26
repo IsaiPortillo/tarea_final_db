@@ -1,6 +1,6 @@
 -- =====================================================
 -- SISTEMA INTEGRAL DE GESTIÓN CLÍNICA PRIVADA
--- Base de Datos PostgreSQL
+-- Base de Datos PostgreSQL (versión limpia con usuarios y roles)
 -- =====================================================
 
 -- =====================================================
@@ -288,7 +288,9 @@ CREATE TABLE facturas (
     sello_recepcion VARCHAR(500),
     fecha_transmision TIMESTAMP,
     observaciones TEXT,
-    usuario_emisor VARCHAR(50)
+    usuario_emisor VARCHAR(50),
+    tipo_transaccion VARCHAR(20),
+    condicion_pago VARCHAR(20)
 );
 
 CREATE TABLE detalle_facturas (
@@ -299,7 +301,17 @@ CREATE TABLE detalle_facturas (
     cantidad INTEGER NOT NULL DEFAULT 1,
     precio_unitario DECIMAL(10,2) NOT NULL,
     subtotal DECIMAL(12,2) NOT NULL,
-    numero_linea INTEGER NOT NULL
+    numero_linea INTEGER NOT NULL,
+    unidad_medida VARCHAR(10),
+    gravado BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE anulaciones (
+    id_anulacion SERIAL PRIMARY KEY,
+    id_factura INTEGER NOT NULL REFERENCES facturas(id_factura) ON DELETE CASCADE,
+    motivo TEXT NOT NULL,
+    fecha_anulacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario_anula VARCHAR(50)
 );
 
 -- =====================================================
